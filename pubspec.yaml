@@ -30,6 +30,10 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   flutter_svg: ^2.0.10+1
+  google_fonts: ^6.1.0
+  google_sign_in: ^6.3.0
+  supabase_flutter: ^2.8.4
+  get: ^4.7.2
 
 dev_dependencies:
   flutter_test:
