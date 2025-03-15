@@ -6,6 +6,7 @@ import 'restaurants_page.dart';
 import 'friends_page.dart';
 import 'profile_page.dart';
 import 'rewards_page.dart';
+import 'swipe_page.dart';
 
 class MainPage extends StatelessWidget {
   const MainPage({super.key});
@@ -19,6 +20,7 @@ class MainPage extends StatelessWidget {
     final pages = [
       const RestaurantsPage(),
       const FriendsPage(),
+      const SwipePage(),
       const RewardsPage(),
       const ProfilePage(),
     ];
@@ -40,6 +42,7 @@ class MainPage extends StatelessWidget {
         items: const [
           FluidNavBarItem(icon: Icons.restaurant, label: 'Restaurants'),
           FluidNavBarItem(icon: Icons.people, label: 'Friends'),
+          FluidNavBarItem(icon: Icons.favorite, label: 'Discover'),
           FluidNavBarItem(icon: Icons.card_giftcard, label: 'Rewards'),
           FluidNavBarItem(icon: Icons.person, label: 'Profile'),
         ],
