@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
+import '../widgets/fluid_bottom_bar.dart';
 import 'restaurants_page.dart';
 import 'friends_page.dart';
 import 'profile_page.dart';
@@ -11,6 +12,8 @@ class MainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = Colors.pink.shade200;
+
     final navigationController = Get.put(NavigationController());
 
     final pages = [
@@ -21,58 +24,25 @@ class MainPage extends StatelessWidget {
     ];
 
     return Scaffold(
+      extendBody: true,
       body: Obx(
         () => IndexedStack(
           index: navigationController.currentIndex.value,
           children: pages,
         ),
       ),
-      bottomNavigationBar: Obx(
-        () => Container(
-          decoration: BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: .1),
-                blurRadius: 10,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-            child: BottomNavigationBar(
-              currentIndex: navigationController.currentIndex.value,
-              onTap: navigationController.changePage,
-              backgroundColor: Colors.white,
-              selectedItemColor: Colors.pink,
-              unselectedItemColor: Colors.grey.shade600,
-              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-              type: BottomNavigationBarType.fixed,
-              elevation: 0,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.restaurant),
-                  label: 'Restaurants',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.people),
-                  label: 'Friends',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.card_giftcard),
-                  label: 'Rewards',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.person),
-                  label: 'Profile',
-                ),
-              ],
-            ),
-          ),
-        ),
+      bottomNavigationBar: FluidBottomBar(
+        controller: navigationController,
+        backgroundColor: Colors.white,
+        selectedIconColor: Colors.white,
+        unselectedIconColor: Colors.grey.shade700,
+        selectedBackgroundColor: themeColor,
+        items: const [
+          FluidNavBarItem(icon: Icons.restaurant, label: 'Restaurants'),
+          FluidNavBarItem(icon: Icons.people, label: 'Friends'),
+          FluidNavBarItem(icon: Icons.card_giftcard, label: 'Rewards'),
+          FluidNavBarItem(icon: Icons.person, label: 'Profile'),
+        ],
       ),
     );
   }
