@@ -34,28 +34,23 @@ class Restaurant {
   });
 
   factory Restaurant.fromFoursquare(Map<String, dynamic> json) {
-    // Extract location info
     final location = json['location'] as Map<String, dynamic>?;
     final String formattedAddress =
         location?['formatted_address'] as String? ?? '';
 
-    // Extract coordinates
     final geocodes = json['geocodes'] as Map<String, dynamic>?;
     final main = geocodes?['main'] as Map<String, dynamic>?;
     final double lat = main?['latitude'] as double? ?? 0.0;
     final double lng = main?['longitude'] as double? ?? 0.0;
 
-    // Extract price level
     final price = json['price'] as int?;
 
-    // Extract category
     final categories = json['categories'] as List<dynamic>?;
     final String? categoryName =
         categories != null && categories.isNotEmpty
             ? (categories[0] as Map<String, dynamic>)['name'] as String?
             : null;
 
-    // Extract photos
     final photos = json['photos'] as List<dynamic>?;
     final List<String> photoUrls = [];
     if (photos != null && photos.isNotEmpty) {
@@ -95,6 +90,53 @@ class Restaurant {
       longitude: lng,
       hours: json['hours'] as Map<String, dynamic>?,
       isClosed: isClosed,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'address': address,
+      'imageUrls': imageUrls,
+      'rating': rating,
+      'category': category,
+      'priceLevel': priceLevel,
+      'phone': phone,
+      'website': website,
+      'distance': distance,
+      'latitude': latitude,
+      'longitude': longitude,
+      'hours': hours,
+      'isClosed': isClosed,
+    };
+  }
+
+  factory Restaurant.fromJson(Map<String, dynamic> json) {
+    return Restaurant(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      address: json['address'] as String?,
+      imageUrls:
+          json['imageUrls'] != null
+              ? List<String>.from(json['imageUrls'] as List)
+              : null,
+      rating:
+          json['rating'] != null ? (json['rating'] as num).toDouble() : null,
+      category: json['category'] as String?,
+      priceLevel: json['priceLevel'] as int?,
+      phone: json['phone'] as String?,
+      website: json['website'] as String?,
+      distance:
+          json['distance'] != null
+              ? (json['distance'] as num).toDouble()
+              : null,
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      hours: json['hours'] as Map<String, dynamic>?,
+      isClosed: json['isClosed'] as bool? ?? false,
     );
   }
 }

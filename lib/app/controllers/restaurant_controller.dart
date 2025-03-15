@@ -1,7 +1,10 @@
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../models/restaurant.dart';
+import 'location_controller.dart';
 
 class RestaurantController extends GetxController {
   final _supabase = Supabase.instance.client;
@@ -9,63 +12,124 @@ class RestaurantController extends GetxController {
   final RxBool isLoading = false.obs;
   final Rx<String?> errorMessage = Rx<String?>(null);
 
-  // Location variables
-  final Rx<Position?> currentPosition = Rx<Position?>(null);
-  final RxBool isLoadingLocation = false.obs;
-  final Rx<String?> locationError = Rx<String?>(null);
+  late final LocationController locationController;
+
+  static const String _restaurantCachePrefix = 'restaurant_cache_';
+  static const String _restaurantDataKey = '${_restaurantCachePrefix}data';
+  static const String _restaurantTimestampKey =
+      '${_restaurantCachePrefix}timestamp';
+  static const String _restaurantLocationKey =
+      '${_restaurantCachePrefix}location';
+
+  static const double _maxCacheDistance = 50.0;
+
+  static const int _restaurantCacheExpirationMs = 30 * 60 * 1000;
+
+  final RxBool isUsingCachedData = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    _determinePosition();
+    locationController = Get.find<LocationController>();
+    ever(locationController.currentPosition, (_) {
+      if (locationController.currentPosition.value != null) {
+        fetchRestaurants();
+      }
+    });
   }
 
-  // Get the user's current position
-  Future<void> _determinePosition() async {
-    isLoadingLocation.value = true;
-    locationError.value = null;
-
+  Future<List<Restaurant>?> _getCachedRestaurants(Position position) async {
     try {
-      bool serviceEnabled;
-      LocationPermission permission;
+      final prefs = await SharedPreferences.getInstance();
 
-      // Test if location services are enabled.
-      serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        // Location services are not enabled, don't continue
-        locationError.value = 'Location services are disabled.';
-        return;
+      if (!prefs.containsKey(_restaurantDataKey) ||
+          !prefs.containsKey(_restaurantTimestampKey) ||
+          !prefs.containsKey(_restaurantLocationKey)) {
+        return null;
       }
 
-      permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          // Permissions are denied, don't continue
-          locationError.value = 'Location permissions are denied.';
-          return;
+      final cachedData = prefs.getString(_restaurantDataKey);
+      final cacheTimestamp = prefs.getInt(_restaurantTimestampKey);
+      final cachedLocationJson = prefs.getString(_restaurantLocationKey);
+
+      if (cachedData == null ||
+          cacheTimestamp == null ||
+          cachedLocationJson == null) {
+        return null;
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - cacheTimestamp > _restaurantCacheExpirationMs) {
+        return null;
+      }
+
+      final cachedLocation = json.decode(cachedLocationJson);
+      final cachedLat = cachedLocation['latitude'];
+      final cachedLng = cachedLocation['longitude'];
+
+      if (cachedLat == null || cachedLng == null) {
+        return null;
+      }
+
+      final distance = Geolocator.distanceBetween(
+        position.latitude,
+        position.longitude,
+        cachedLat,
+        cachedLng,
+      );
+
+      if (distance <= _maxCacheDistance) {
+        try {
+          final List<dynamic> jsonList = json.decode(cachedData);
+          return jsonList
+              .map<Restaurant>((item) => Restaurant.fromJson(item))
+              .toList();
+        } catch (e) {
+          return null;
         }
       }
 
-      if (permission == LocationPermission.deniedForever) {
-        // Permissions are denied forever, handle appropriately.
-        locationError.value = 'Location permissions are permanently denied.';
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition();
-      currentPosition.value = position;
-
-      await fetchRestaurants();
+      return null;
     } catch (e) {
-      locationError.value = 'Error getting location: ${e.toString()}';
-    } finally {
-      isLoadingLocation.value = false;
+      return null;
     }
   }
 
+  Future<void> _cacheRestaurants(
+    Position position,
+    List<Restaurant> restaurants,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final restaurantJsonList = restaurants.map((r) => r.toJson()).toList();
+      final restaurantJson = json.encode(restaurantJsonList);
+
+      final locationJson = json.encode({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      });
+
+      await prefs.setString(_restaurantDataKey, restaurantJson);
+      await prefs.setInt(
+        _restaurantTimestampKey,
+        DateTime.now().millisecondsSinceEpoch,
+      );
+      await prefs.setString(_restaurantLocationKey, locationJson);
+    } catch (e) {}
+  }
+
+  Future<void> clearRestaurantCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_restaurantDataKey);
+      await prefs.remove(_restaurantTimestampKey);
+      await prefs.remove(_restaurantLocationKey);
+    } catch (e) {}
+  }
+
   Future<void> fetchRestaurants() async {
-    if (currentPosition.value == null) {
+    if (locationController.currentPosition.value == null) {
       errorMessage.value =
           'Location not available. Please enable location services.';
       return;
@@ -74,8 +138,15 @@ class RestaurantController extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = null;
+      final position = locationController.currentPosition.value!;
 
-      final position = currentPosition.value!;
+      final cachedRestaurants = await _getCachedRestaurants(position);
+      if (cachedRestaurants != null && cachedRestaurants.isNotEmpty) {
+        restaurants.value = cachedRestaurants;
+        isUsingCachedData.value = true;
+        isLoading.value = false;
+        return;
+      }
 
       final response = await _supabase.functions.invoke(
         'fetch-restaurants',
@@ -105,7 +176,7 @@ class RestaurantController extends GetxController {
       final results = data['results'] as Map<String, dynamic>;
       final List<dynamic> places = results['results'] as List<dynamic>;
 
-      final List<Restaurant> fetchedRestaurants =
+      final fetchedRestaurants =
           places
               .map<Restaurant>(
                 (place) =>
@@ -114,19 +185,23 @@ class RestaurantController extends GetxController {
               .toList();
 
       restaurants.value = fetchedRestaurants;
+      isUsingCachedData.value = false;
+
+      await _cacheRestaurants(position, fetchedRestaurants);
     } catch (error) {
       errorMessage.value = 'Failed to fetch restaurants: ${error.toString()}';
-      print('Error fetching restaurants: $error');
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> refreshLocation() async {
-    await _determinePosition();
+  Future<void> refreshRestaurants({bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      await clearRestaurantCache();
+    }
+    await fetchRestaurants();
   }
 
-  // Search restaurants from local list
   List<Restaurant> searchLocalRestaurants(String query) {
     if (query.isEmpty) return restaurants;
 
@@ -138,7 +213,6 @@ class RestaurantController extends GetxController {
     }).toList();
   }
 
-  // Get restaurant by ID from local list
   Restaurant? getRestaurantByIdLocal(String id) {
     try {
       return restaurants.firstWhere((restaurant) => restaurant.id == id);

@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:get/get.dart';
 
 import 'app/controllers/auth_controller.dart';
-import 'app/pages/home_page.dart';
+import 'app/pages/main_page.dart';
 import 'app/middleware/auth_middleware.dart';
 import 'app/bindings/app_bindings.dart';
 
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: '/home',
-          page: () => const HomePage(),
+          page: () => const MainPage(),
           middlewares: [AuthMiddleware()],
         ),
       ],

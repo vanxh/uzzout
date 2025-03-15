@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/restaurant_controller.dart';
-import '../widgets/restaurant_card.dart';
+import '../controllers/location_controller.dart';
+import '../widgets/animated_restaurant_card.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -12,6 +13,8 @@ class HomePage extends StatelessWidget {
     final AuthController authController = Get.find<AuthController>();
     final RestaurantController restaurantController =
         Get.find<RestaurantController>();
+    final LocationController locationController =
+        Get.find<LocationController>();
 
     return Scaffold(
       appBar: AppBar(
@@ -19,7 +22,7 @@ class HomePage extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => restaurantController.refreshLocation(),
+            onPressed: () => locationController.refreshLocation(),
           ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -48,40 +51,8 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Explore restaurants or create a group to start swiping!',
+                  'Explore these amazing restaurants near you!',
                   style: TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Get.snackbar(
-                        'Coming Soon',
-                        'Create group functionality will be implemented soon!',
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
-                    },
-                    child: const Text('Create Group'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Get.snackbar(
-                        'Coming Soon',
-                        'Join group functionality will be implemented soon!',
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
-                    },
-                    child: const Text('Join Group'),
-                  ),
                 ),
               ],
             ),
@@ -103,10 +74,10 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Expanded(
             child: Obx(() {
-              if (restaurantController.isLoadingLocation.value) {
+              if (locationController.isLoadingLocation.value) {
                 return const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -122,7 +93,7 @@ class HomePage extends StatelessWidget {
                 );
               }
 
-              if (restaurantController.locationError.value != null) {
+              if (locationController.locationError.value != null) {
                 return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -134,13 +105,13 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        restaurantController.locationError.value!,
+                        locationController.locationError.value!,
                         textAlign: TextAlign.center,
                         style: const TextStyle(color: Colors.red),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () => restaurantController.refreshLocation(),
+                        onPressed: () => locationController.refreshLocation(),
                         child: const Text('Enable Location'),
                       ),
                     ],
@@ -195,21 +166,20 @@ class HomePage extends StatelessWidget {
                 );
               }
 
-              return ListView.builder(
-                itemCount: restaurantController.restaurants.length,
-                itemBuilder: (context, index) {
-                  final restaurant = restaurantController.restaurants[index];
-                  return RestaurantCard(
-                    restaurant: restaurant,
-                    onTap: () {
-                      Get.snackbar(
-                        restaurant.name,
-                        'Restaurant details coming soon!',
-                        snackPosition: SnackPosition.BOTTOM,
-                      );
-                    },
-                  );
-                },
+              return Column(
+                children: [
+                  Expanded(
+                    child: PageView.builder(
+                      controller: PageController(viewportFraction: 0.85),
+                      itemCount: restaurantController.restaurants.length,
+                      itemBuilder: (context, index) {
+                        final restaurant =
+                            restaurantController.restaurants[index];
+                        return AnimatedRestaurantCard(restaurant: restaurant);
+                      },
+                    ),
+                  ),
+                ],
               );
             }),
           ),
