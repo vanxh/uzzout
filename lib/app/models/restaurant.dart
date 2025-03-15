@@ -6,31 +6,45 @@ class Restaurant {
   final List<String>? imageUrls;
   final double? rating;
   final String? category;
-  final int? priceLevel; // 1-4 representing price tiers
-  final String? phone;
+  final List<Map<String, dynamic>>? categories;
+  final int? price;
+  final String? tel;
   final String? website;
-  final double? distance; // in meters
-  final double latitude;
-  final double longitude;
+  final int? distance;
+  final double? latitude;
+  final double? longitude;
   final Map<String, dynamic>? hours;
-  final bool isClosed;
+  final String? closedBucket;
+  final Map<String, dynamic>? location;
+  final Map<String, dynamic>? geocodes;
+  final Map<String, dynamic>? features;
+  final Map<String, dynamic>? social_media;
+  final Map<String, dynamic>? stats;
+  final String? timezone;
 
   Restaurant({
     required this.id,
     required this.name,
-    required this.latitude,
-    required this.longitude,
     this.description,
     this.address,
     this.imageUrls,
     this.rating,
     this.category,
-    this.priceLevel,
-    this.phone,
+    this.categories,
+    this.price,
+    this.tel,
     this.website,
     this.distance,
+    this.latitude,
+    this.longitude,
     this.hours,
-    this.isClosed = false,
+    this.closedBucket,
+    this.location,
+    this.geocodes,
+    this.features,
+    this.social_media,
+    this.stats,
+    this.timezone,
   });
 
   factory Restaurant.fromFoursquare(Map<String, dynamic> json) {
@@ -40,8 +54,8 @@ class Restaurant {
 
     final geocodes = json['geocodes'] as Map<String, dynamic>?;
     final main = geocodes?['main'] as Map<String, dynamic>?;
-    final double lat = main?['latitude'] as double? ?? 0.0;
-    final double lng = main?['longitude'] as double? ?? 0.0;
+    final double? lat = main?['latitude'] as double?;
+    final double? lng = main?['longitude'] as double?;
 
     final price = json['price'] as int?;
 
@@ -51,9 +65,9 @@ class Restaurant {
             ? (categories[0] as Map<String, dynamic>)['name'] as String?
             : null;
 
-    final photos = json['photos'] as List<dynamic>?;
     final List<String> photoUrls = [];
-    if (photos != null && photos.isNotEmpty) {
+    if (json['photos'] != null && json['photos'] is List<dynamic>) {
+      final photos = json['photos'] as List<dynamic>;
       for (var photo in photos) {
         if (photo is Map<String, dynamic>) {
           final prefix = photo['prefix'] as String?;
@@ -65,11 +79,6 @@ class Restaurant {
       }
     }
 
-    final closedBucket = json['closed_bucket'] as String?;
-    final bool isClosed =
-        closedBucket == 'Temporarily Closed' ||
-        closedBucket == 'Permanently Closed';
-
     return Restaurant(
       id: json['fsq_id'] as String,
       name: json['name'] as String,
@@ -79,17 +88,22 @@ class Restaurant {
       rating:
           json['rating'] != null ? (json['rating'] as num).toDouble() : null,
       category: categoryName,
-      priceLevel: price,
-      phone: json['tel'] as String?,
+      categories: categories?.cast<Map<String, dynamic>>(),
+      price: price,
+      tel: json['tel'] as String?,
       website: json['website'] as String?,
       distance:
-          json['distance'] != null
-              ? (json['distance'] as num).toDouble()
-              : null,
+          json['distance'] != null ? (json['distance'] as num).toInt() : null,
       latitude: lat,
       longitude: lng,
       hours: json['hours'] as Map<String, dynamic>?,
-      isClosed: isClosed,
+      closedBucket: json['closed_bucket'] as String?,
+      location: location,
+      geocodes: geocodes,
+      features: json['features'] as Map<String, dynamic>?,
+      social_media: json['social_media'] as Map<String, dynamic>?,
+      stats: json['stats'] as Map<String, dynamic>?,
+      timezone: json['timezone'] as String?,
     );
   }
 
@@ -102,41 +116,61 @@ class Restaurant {
       'imageUrls': imageUrls,
       'rating': rating,
       'category': category,
-      'priceLevel': priceLevel,
-      'phone': phone,
+      'categories': categories,
+      'price': price,
+      'tel': tel,
       'website': website,
       'distance': distance,
       'latitude': latitude,
       'longitude': longitude,
       'hours': hours,
-      'isClosed': isClosed,
+      'closedBucket': closedBucket,
+      'location': location,
+      'geocodes': geocodes,
+      'features': features,
+      'social_media': social_media,
+      'stats': stats,
+      'timezone': timezone,
     };
   }
 
   factory Restaurant.fromJson(Map<String, dynamic> json) {
+    final List<String>? imageUrlsList =
+        json['imageUrls'] != null
+            ? List<String>.from(json['imageUrls'] as List)
+            : null;
+
     return Restaurant(
-      id: json['id'] as String,
+      id: json['id'] as String? ?? json['fsq_id'] as String,
       name: json['name'] as String,
       description: json['description'] as String?,
       address: json['address'] as String?,
-      imageUrls:
-          json['imageUrls'] != null
-              ? List<String>.from(json['imageUrls'] as List)
-              : null,
+      imageUrls: imageUrlsList,
       rating:
           json['rating'] != null ? (json['rating'] as num).toDouble() : null,
       category: json['category'] as String?,
-      priceLevel: json['priceLevel'] as int?,
-      phone: json['phone'] as String?,
+      categories: json['categories']?.cast<Map<String, dynamic>>(),
+      price: json['price'] as int?,
+      tel: json['tel'] as String?,
       website: json['website'] as String?,
       distance:
-          json['distance'] != null
-              ? (json['distance'] as num).toDouble()
+          json['distance'] != null ? (json['distance'] as num).toInt() : null,
+      latitude:
+          json['latitude'] != null
+              ? (json['latitude'] as num).toDouble()
               : null,
-      latitude: (json['latitude'] as num).toDouble(),
-      longitude: (json['longitude'] as num).toDouble(),
+      longitude:
+          json['longitude'] != null
+              ? (json['longitude'] as num).toDouble()
+              : null,
       hours: json['hours'] as Map<String, dynamic>?,
-      isClosed: json['isClosed'] as bool? ?? false,
+      closedBucket: json['closed_bucket'] as String?,
+      location: json['location'] as Map<String, dynamic>?,
+      geocodes: json['geocodes'] as Map<String, dynamic>?,
+      features: json['features'] as Map<String, dynamic>?,
+      social_media: json['social_media'] as Map<String, dynamic>?,
+      stats: json['stats'] as Map<String, dynamic>?,
+      timezone: json['timezone'] as String?,
     );
   }
 }
