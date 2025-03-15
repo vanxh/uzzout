@@ -28,10 +28,16 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const authorization = req.headers.get("Authorization") ?? "";
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: {
+          "Authorization": authorization,
+        },
+      },
+    });
 
-    const token = req.headers.get("Authorization")?.split(" ")[1];
-
+    const token = authorization.split(" ")[1];
     // Get user authentication
     const { data: authData } = await supabase.auth.getUser(token);
     if (!authData?.user) {

@@ -107,6 +107,36 @@ class _RestaurantCardSwiperState extends State<RestaurantCardSwiper> {
   final CardSwiperController controller = CardSwiperController();
 
   final Map<String, int> _swipeStats = {'likes': 0, 'passes': 0};
+  final Map<String, int> _totalRestaurantStats = {'likes': 0, 'dislikes': 0};
+  String? _currentUserPreference;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentRestaurantStats();
+  }
+
+  Future<void> _fetchCurrentRestaurantStats() async {
+    if (widget.restaurants.isEmpty) return;
+
+    final RestaurantController restaurantController =
+        Get.find<RestaurantController>();
+    try {
+      final preferences = await restaurantController.getRestaurantPreferences(
+        widget.restaurants[_currentIndex].id,
+      );
+
+      setState(() {
+        _totalRestaurantStats['likes'] = preferences['data']['likes'] ?? 0;
+        _totalRestaurantStats['dislikes'] =
+            preferences['data']['dislikes'] ?? 0;
+        _currentUserPreference = preferences['data']['userPreference'];
+      });
+    } catch (error) {
+      print('Error fetching restaurant stats: ${error.toString()}');
+    }
+  }
 
   @override
   void dispose() {
@@ -142,12 +172,12 @@ class _RestaurantCardSwiperState extends State<RestaurantCardSwiper> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                '👎 ${_swipeStats['passes']}',
+                '👎 ${_totalRestaurantStats['dislikes']}',
                 style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(width: 24),
               Text(
-                '👍 ${_swipeStats['likes']}',
+                '👍 ${_totalRestaurantStats['likes']}',
                 style: const TextStyle(fontSize: 16),
               ),
             ],
@@ -206,31 +236,80 @@ class _RestaurantCardSwiperState extends State<RestaurantCardSwiper> {
     int? currentIndex,
     CardSwiperDirection direction,
   ) {
+    final restaurant = widget.restaurants[previousIndex];
+    final RestaurantController restaurantController =
+        Get.find<RestaurantController>();
+
     if (direction == CardSwiperDirection.right) {
       setState(() {
         _swipeStats['likes'] = (_swipeStats['likes'] ?? 0) + 1;
+
+        if (_currentUserPreference == 'dislike') {
+          _totalRestaurantStats['dislikes'] =
+              (_totalRestaurantStats['dislikes'] ?? 1) - 1;
+        } else if (_currentUserPreference != 'like') {
+          _totalRestaurantStats['likes'] =
+              (_totalRestaurantStats['likes'] ?? 0) + 1;
+        }
+        _currentUserPreference = 'like';
       });
 
-      final restaurant = widget.restaurants[previousIndex];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Liked ${restaurant.name}'),
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      restaurantController
+          .saveRestaurantPreference(restaurant.id, 'like')
+          .then((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Liked ${restaurant.name}'),
+                duration: const Duration(seconds: 1),
+              ),
+            );
+          })
+          .catchError((error) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error saving preference: ${error.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          });
     } else if (direction == CardSwiperDirection.left) {
       setState(() {
         _swipeStats['passes'] = (_swipeStats['passes'] ?? 0) + 1;
+
+        if (_currentUserPreference == 'like') {
+          _totalRestaurantStats['likes'] =
+              (_totalRestaurantStats['likes'] ?? 1) - 1;
+        } else if (_currentUserPreference != 'dislike') {
+          _totalRestaurantStats['dislikes'] =
+              (_totalRestaurantStats['dislikes'] ?? 0) + 1;
+        }
+        _currentUserPreference = 'dislike';
       });
 
-      final restaurant = widget.restaurants[previousIndex];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Passed on ${restaurant.name}'),
-          duration: const Duration(seconds: 1),
-          backgroundColor: Colors.grey,
-        ),
-      );
+      restaurantController
+          .saveRestaurantPreference(restaurant.id, 'dislike')
+          .then((_) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Passed on ${restaurant.name}'),
+                duration: const Duration(seconds: 1),
+                backgroundColor: Colors.grey,
+              ),
+            );
+          })
+          .catchError((error) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error saving preference: ${error.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          });
+    }
+
+    if (currentIndex != null) {
+      _currentIndex = currentIndex;
+      _fetchCurrentRestaurantStats();
     }
 
     return true;
@@ -241,17 +320,73 @@ class _RestaurantCardSwiperState extends State<RestaurantCardSwiper> {
     int currentIndex,
     CardSwiperDirection direction,
   ) {
+    final restaurant = widget.restaurants[currentIndex];
+    final RestaurantController restaurantController =
+        Get.find<RestaurantController>();
+
     if (direction == CardSwiperDirection.right) {
       setState(() {
         _swipeStats['likes'] = (_swipeStats['likes'] ?? 1) - 1;
+
+        if (_totalRestaurantStats['likes'] != null &&
+            _totalRestaurantStats['likes']! > 0) {
+          _totalRestaurantStats['likes'] = _totalRestaurantStats['likes']! - 1;
+        }
+        _totalRestaurantStats['dislikes'] =
+            (_totalRestaurantStats['dislikes'] ?? 0) + 1;
+        _currentUserPreference = 'dislike';
       });
+
+      restaurantController
+          .saveRestaurantPreference(restaurant.id, 'dislike')
+          .catchError((error) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Error updating preference: ${error.toString()}',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+
+            return {} as Map<String, dynamic>;
+          });
     } else if (direction == CardSwiperDirection.left) {
       setState(() {
         _swipeStats['passes'] = (_swipeStats['passes'] ?? 1) - 1;
+
+        if (_totalRestaurantStats['dislikes'] != null &&
+            _totalRestaurantStats['dislikes']! > 0) {
+          _totalRestaurantStats['dislikes'] =
+              _totalRestaurantStats['dislikes']! - 1;
+        }
+        _totalRestaurantStats['likes'] =
+            (_totalRestaurantStats['likes'] ?? 0) + 1;
+        _currentUserPreference = 'like';
       });
+
+      restaurantController
+          .saveRestaurantPreference(restaurant.id, 'like')
+          .catchError((error) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Error updating preference: ${error.toString()}',
+                  ),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+
+            return {} as Map<String, dynamic>;
+          });
     }
 
-    final restaurant = widget.restaurants[currentIndex];
+    _currentIndex = currentIndex;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Undo swipe for ${restaurant.name}'),

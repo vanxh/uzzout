@@ -10,10 +10,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
 interface RequestBody {
   restaurantId: string; // fsq_id
-  preference: "like" | "dislike";
 }
 
-console.log("Hello from Functions!");
+interface PreferenceCounts {
+  likes: number;
+  dislikes: number;
+  userPreference: string | null;
+}
+
+console.log("Restaurant Preferences Function initialized!");
 
 serve(async (req) => {
   try {
@@ -45,22 +50,11 @@ serve(async (req) => {
 
     // Parse request body
     const requestData: RequestBody = await req.json();
-    const { restaurantId, preference } = requestData;
+    const { restaurantId } = requestData;
 
-    if (!restaurantId || !preference) {
+    if (!restaurantId) {
       return new Response(
-        JSON.stringify({ error: "Restaurant ID and preference are required" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    // Validate preference value
-    if (preference !== "like" && preference !== "dislike") {
-      return new Response(
-        JSON.stringify({ error: "Preference must be 'like' or 'dislike'" }),
+        JSON.stringify({ error: "Restaurant ID is required" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -69,29 +63,22 @@ serve(async (req) => {
     }
 
     console.log(
-      "Saving preference for user:",
-      userId,
-      "and restaurant:",
+      "Getting preferences for restaurant:",
       restaurantId,
-      "with preference:",
-      preference,
     );
-    // Save preference to the database (upsert to handle both new and existing preferences)
-    const { data, error } = await supabase
-      .from("restaurant_preferences")
-      .upsert({
-        user_id: userId,
-        restaurant_id: restaurantId,
-        preference: preference,
-      }, {
-        onConflict: "user_id,restaurant_id",
-      });
 
-    if (error) {
+    // Get total likes for the restaurant
+    const { count: likesCount, error: likesError } = await supabase
+      .from("restaurant_preferences")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurantId)
+      .eq("preference", "like");
+
+    if (likesError) {
       return new Response(
         JSON.stringify({
-          error: "Failed to save preference",
-          details: error.message,
+          error: "Failed to get likes count",
+          details: likesError.message,
         }),
         {
           status: 500,
@@ -100,10 +87,57 @@ serve(async (req) => {
       );
     }
 
+    // Get total dislikes for the restaurant
+    const { count: dislikesCount, error: dislikesError } = await supabase
+      .from("restaurant_preferences")
+      .select("*", { count: "exact", head: true })
+      .eq("restaurant_id", restaurantId)
+      .eq("preference", "dislike");
+
+    if (dislikesError) {
+      return new Response(
+        JSON.stringify({
+          error: "Failed to get dislikes count",
+          details: dislikesError.message,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Get the current user's preference for this restaurant
+    const { data: userPreference, error: userPrefError } = await supabase
+      .from("restaurant_preferences")
+      .select("preference")
+      .eq("restaurant_id", restaurantId)
+      .eq("user_id", userId)
+      .single();
+
+    if (userPrefError && userPrefError.code !== "PGRST116") { // PGRST116 is 'no rows returned' which is fine
+      return new Response(
+        JSON.stringify({
+          error: "Failed to get user preference",
+          details: userPrefError.message,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const result: PreferenceCounts = {
+      likes: likesCount || 0,
+      dislikes: dislikesCount || 0,
+      userPreference: userPreference ? userPreference.preference : null,
+    };
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Restaurant ${restaurantId} marked as ${preference}`,
+        data: result,
       }),
       {
         headers: { "Content-Type": "application/json" },
@@ -128,9 +162,9 @@ serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/save-restaurant-preference' \
-    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
+  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/get-restaurant-preferences' \
+    --header 'Authorization: Bearer YOUR_ANON_KEY' \
     --header 'Content-Type: application/json' \
-    --data '{"name":"Functions"}'
+    --data '{"restaurantId":"YOUR_RESTAURANT_ID"}'
 
 */

@@ -202,6 +202,61 @@ class RestaurantController extends GetxController {
     await fetchRestaurants();
   }
 
+  Future<Map<String, dynamic>> saveRestaurantPreference(
+    String restaurantId,
+    String preference,
+  ) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'save-restaurant-preference',
+        body: {'restaurantId': restaurantId, 'preference': preference},
+        headers: {
+          'Authorization':
+              'Bearer ${_supabase.auth.currentSession?.accessToken}',
+        },
+      );
+
+      if (response.status != 200) {
+        throw Exception(
+          'Failed to save preference: Status code ${response.status}',
+        );
+      }
+
+      return response.data as Map<String, dynamic>;
+    } catch (error) {
+      print('Error saving restaurant preference: ${error.toString()}');
+      throw Exception('Failed to save preference: ${error.toString()}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getRestaurantPreferences(
+    String restaurantId,
+  ) async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'get-restaurant-preferences',
+        body: {'restaurantId': restaurantId},
+        headers: {
+          'Authorization':
+              'Bearer ${_supabase.auth.currentSession?.accessToken}',
+        },
+      );
+
+      if (response.status != 200) {
+        throw Exception(
+          'Failed to get restaurant preferences: Status code ${response.status}',
+        );
+      }
+
+      return response.data as Map<String, dynamic>;
+    } catch (error) {
+      print('Error getting restaurant preferences: ${error.toString()}');
+      throw Exception(
+        'Failed to get restaurant preferences: ${error.toString()}',
+      );
+    }
+  }
+
   List<Restaurant> searchLocalRestaurants(String query) {
     if (query.isEmpty) return restaurants;
 
