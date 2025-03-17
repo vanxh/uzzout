@@ -60,22 +60,20 @@ class ProfileController extends GetxController {
     try {
       isProfileEditing.value = true;
 
-      final updates = {
-        'full_name': fullName ?? currentUserProfile.value!.fullName,
-        'avatar_url': avatarUrl ?? currentUserProfile.value!.avatarUrl,
-        'bio': bio ?? currentUserProfile.value!.bio,
-        'updated_at': DateTime.now().toIso8601String(),
+      final updateData = {
+        if (fullName != null) 'full_name': fullName,
+        if (avatarUrl != null) 'avatar_url': avatarUrl,
+        if (bio != null) 'bio': bio,
       };
-      print(updates);
 
-      final update = await _supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', currentUserProfile.value!.id);
+      final response = await _supabase.functions.invoke(
+        'update-user-profile',
+        method: HttpMethod.put,
+        body: updateData,
+      );
 
-      print(update);
-      if (update.status != 204) {
-        throw Exception('Failed to update profile');
+      if (response.status != 200) {
+        throw 'Failed to update profile: ${response.data['error'] ?? 'Unknown error'}';
       }
 
       await fetchCurrentUserProfile();

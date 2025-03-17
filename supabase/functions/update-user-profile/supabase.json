@@ -1,0 +1,11 @@
+{
+	"name": "update-user-profile",
+	"version": "1.0.0",
+	"description": "Edge function to update user profile details",
+	"keywords": ["supabase", "functions", "edge", "profile", "update"],
+	"imports": {
+		"std/": "https://deno.land/std@0.168.0/",
+		"@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.38.4"
+	},
+	"serve": "index.ts"
+}
