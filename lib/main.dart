@@ -7,6 +7,8 @@ import 'app/pages/main_page.dart';
 import 'app/middleware/auth_middleware.dart';
 import 'app/bindings/app_bindings.dart';
 import 'app/pages/onboarding_page.dart';
+import 'app/pages/followers_page.dart';
+import 'app/pages/following_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,6 +47,16 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/home',
           page: () => const MainPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/followers',
+          page: () => const FollowersPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/following',
+          page: () => const FollowingPage(),
           middlewares: [AuthMiddleware()],
         ),
       ],

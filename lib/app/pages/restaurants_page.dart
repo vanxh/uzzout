@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/restaurant_controller.dart';
 import '../controllers/location_controller.dart';
+import '../controllers/auth_controller.dart';
 import '../widgets/animated_restaurant_card.dart';
 
 class RestaurantsPage extends StatelessWidget {
@@ -13,6 +14,7 @@ class RestaurantsPage extends StatelessWidget {
         Get.find<RestaurantController>();
     final LocationController locationController =
         Get.find<LocationController>();
+    final AuthController authController = Get.find<AuthController>();
 
     return Scaffold(
       body: SafeArea(
@@ -43,6 +45,27 @@ class RestaurantsPage extends StatelessWidget {
               const SizedBox(height: 16),
               Expanded(
                 child: Obx(() {
+                  if (!authController.isAuthenticated) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.login, size: 48, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Authentication required',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => Get.offAllNamed('/'),
+                            child: const Text('Sign In'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
                   if (locationController.isLoadingLocation.value) {
                     return const Center(
                       child: Column(

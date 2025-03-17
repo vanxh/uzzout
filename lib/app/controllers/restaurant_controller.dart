@@ -1,9 +1,10 @@
+import 'dart:convert';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import '../models/restaurant.dart';
+import '../controllers/auth_controller.dart';
 import 'location_controller.dart';
 
 class RestaurantController extends GetxController {
@@ -13,6 +14,7 @@ class RestaurantController extends GetxController {
   final Rx<String?> errorMessage = Rx<String?>(null);
 
   late final LocationController locationController;
+  late final AuthController authController;
 
   static const String _restaurantCachePrefix = 'restaurant_cache_';
   static const String _restaurantDataKey = '${_restaurantCachePrefix}data';
@@ -31,8 +33,18 @@ class RestaurantController extends GetxController {
   void onInit() {
     super.onInit();
     locationController = Get.find<LocationController>();
+    authController = Get.find<AuthController>();
+
+    ever(authController.user, (_) {
+      if (authController.isAuthenticated &&
+          locationController.currentPosition.value != null) {
+        fetchRestaurants();
+      }
+    });
+
     ever(locationController.currentPosition, (_) {
-      if (locationController.currentPosition.value != null) {
+      if (locationController.currentPosition.value != null &&
+          authController.isAuthenticated) {
         fetchRestaurants();
       }
     });
@@ -135,6 +147,11 @@ class RestaurantController extends GetxController {
       return;
     }
 
+    if (!authController.isAuthenticated) {
+      errorMessage.value = 'Authentication required. Please sign in.';
+      return;
+    }
+
     try {
       isLoading.value = true;
       errorMessage.value = null;
@@ -148,6 +165,11 @@ class RestaurantController extends GetxController {
         return;
       }
 
+      final session = _supabase.auth.currentSession;
+      if (session == null) {
+        throw Exception('Authentication session not available');
+      }
+
       final response = await _supabase.functions.invoke(
         'fetch-restaurants',
         body: {
@@ -156,10 +178,7 @@ class RestaurantController extends GetxController {
           'radius': 22000,
           'sort': 'distance',
         },
-        headers: {
-          'Authorization':
-              'Bearer ${_supabase.auth.currentSession?.accessToken}',
-        },
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
       );
 
       if (response.status != 200) {
@@ -207,13 +226,15 @@ class RestaurantController extends GetxController {
     String preference,
   ) async {
     try {
+      final session = _supabase.auth.currentSession;
+      if (session == null) {
+        throw Exception('Authentication session not available');
+      }
+
       final response = await _supabase.functions.invoke(
         'save-restaurant-preference',
         body: {'restaurantId': restaurantId, 'preference': preference},
-        headers: {
-          'Authorization':
-              'Bearer ${_supabase.auth.currentSession?.accessToken}',
-        },
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
       );
 
       if (response.status != 200) {
@@ -233,13 +254,15 @@ class RestaurantController extends GetxController {
     String restaurantId,
   ) async {
     try {
+      final session = _supabase.auth.currentSession;
+      if (session == null) {
+        throw Exception('Authentication session not available');
+      }
+
       final response = await _supabase.functions.invoke(
         'get-restaurant-preferences',
         body: {'restaurantId': restaurantId},
-        headers: {
-          'Authorization':
-              'Bearer ${_supabase.auth.currentSession?.accessToken}',
-        },
+        headers: {'Authorization': 'Bearer ${session.accessToken}'},
       );
 
       if (response.status != 200) {

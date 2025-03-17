@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:get/get.dart';
 import '../controllers/restaurant_controller.dart';
+import '../controllers/auth_controller.dart';
 import '../models/restaurant.dart';
 
 class SwipePage extends StatelessWidget {
@@ -11,6 +12,7 @@ class SwipePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final RestaurantController restaurantController =
         Get.find<RestaurantController>();
+    final AuthController authController = Get.find<AuthController>();
 
     return Scaffold(
       body: SafeArea(
@@ -35,6 +37,27 @@ class SwipePage extends StatelessWidget {
             ),
             Expanded(
               child: Obx(() {
+                if (!authController.isAuthenticated) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.login, size: 48, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Authentication required',
+                          style: TextStyle(fontSize: 18, color: Colors.grey),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => Get.offAllNamed('/'),
+                          child: const Text('Sign In'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 if (restaurantController.isLoading.value) {
                   return const Center(child: CircularProgressIndicator());
                 }

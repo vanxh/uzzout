@@ -1,0 +1,16 @@
+{
+	"name": "get-user-profile",
+	"version": "1.0.0",
+	"description": "Fetch user data from auth.users and public.profiles, and create a profile if it doesn't exist",
+	"runtime": "deno",
+	"edge_functions": [
+		{
+			"path": "/get-user-profile",
+			"method": "GET"
+		},
+		{
+			"path": "/get-user-profile/:id",
+			"method": "GET"
+		}
+	]
+}
