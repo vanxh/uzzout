@@ -108,6 +108,11 @@ class ProfilePage extends StatelessWidget {
                       labelColor: Colors.pink.shade700,
                       unselectedLabelColor: Colors.grey.shade600,
                       indicatorColor: Colors.pink.shade400,
+                      labelStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      indicatorWeight: 3,
                       tabs: const [
                         Tab(icon: Icon(Icons.grid_on), text: "Posts"),
                         Tab(icon: Icon(Icons.bookmark_border), text: "Saved"),
@@ -125,43 +130,6 @@ class ProfilePage extends StatelessWidget {
           ),
         );
       }),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Add post functionality coming soon!'),
-            ),
-          );
-        },
-        backgroundColor: Colors.pink.shade400,
-        child: const Icon(Icons.add_photo_alternate_outlined),
-      ),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(16.0),
-        height: 56,
-        child: ElevatedButton(
-          onPressed: () async {
-            await Get.find<AuthController>().signOut();
-            Get.offAllNamed('/');
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red.shade400,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.logout),
-              SizedBox(width: 8),
-              Text('Sign Out', style: TextStyle(fontSize: 16)),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -414,57 +382,86 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildPostsGrid(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(4),
-      physics: const ClampingScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 1.0,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
-      ),
-      itemCount: 9,
-      itemBuilder: (context, index) {
-        return PostGridItem(
-          index: index,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Viewing post $index'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
-        );
-      },
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            bottom: 80,
+          ), // Add padding for bottom nav bar
+          child: GridView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+            physics: const ClampingScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 1.0,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+            ),
+            itemCount: 9,
+            itemBuilder: (context, index) {
+              return PostGridItem(
+                index: index,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Viewing post $index'),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        Positioned(
+          right: 16,
+          bottom: 96, // Position above bottom nav bar
+          child: FloatingActionButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Add post functionality coming soon!'),
+                ),
+              );
+            },
+            backgroundColor: Colors.pink.shade400,
+            child: const Icon(Icons.add_photo_alternate_outlined),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildSavedGrid(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(4),
-      physics: const ClampingScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 1.0,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 4,
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: 80,
+      ), // Add padding for bottom nav bar
+      child: GridView.builder(
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+        physics: const ClampingScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          childAspectRatio: 1.0,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemCount: 3,
+        itemBuilder: (context, index) {
+          return PostGridItem(
+            index: index,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Viewing saved post $index'),
+                  duration: const Duration(seconds: 1),
+                ),
+              );
+            },
+            isSaved: true,
+          );
+        },
       ),
-      itemCount: 3,
-      itemBuilder: (context, index) {
-        return PostGridItem(
-          index: index,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Viewing saved post $index'),
-                duration: const Duration(seconds: 1),
-              ),
-            );
-          },
-          isSaved: true,
-        );
-      },
     );
   }
 
@@ -666,7 +663,7 @@ class ProfilePage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'Location Options',
+                  'Settings',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
@@ -747,6 +744,24 @@ class ProfilePage extends StatelessWidget {
                     );
                   },
                 ),
+                const Divider(),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    'Sign Out',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: const Text('Log out from your account'),
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Get.find<AuthController>().signOut();
+                    Get.offAllNamed('/');
+                  },
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -937,42 +952,55 @@ class PostGridItem extends StatelessWidget {
 
     final color = colors[index % colors.length];
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Icon(
-                isSaved ? Icons.bookmark : Icons.restaurant,
-                color: Colors.white,
-                size: 32,
+    return Material(
+      elevation: 2,
+      shadowColor: Colors.black.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-          ),
-          if (isSaved)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
+              child: Center(
                 child: Icon(
-                  Icons.bookmark,
-                  size: 12,
-                  color: Colors.pink.shade400,
+                  isSaved ? Icons.bookmark : Icons.restaurant,
+                  color: Colors.white,
+                  size: 32,
                 ),
               ),
             ),
-        ],
+            if (isSaved)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 2,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.bookmark,
+                    size: 12,
+                    color: Colors.pink.shade400,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -995,7 +1023,19 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return Container(color: const Color(0xFFFFF5F5), child: tabBar);
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF5F5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: tabBar,
+    );
   }
 
   @override
