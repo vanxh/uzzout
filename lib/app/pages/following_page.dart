@@ -77,17 +77,44 @@ class _FollowingPageState extends State<FollowingPage>
 
     try {
       final userId = _profileController.currentUserProfile.value!.id;
-      final following = await _profileController.getFollowing(userId);
+      final cachedFollowing = await _profileController.getFollowing(userId);
 
       setState(() {
-        _following = following;
+        _following = cachedFollowing;
         _isLoading = false;
-        _showScrollIndicator = following.length > 2;
+        _showScrollIndicator = cachedFollowing.length > 2;
       });
       _animationController.forward();
     } catch (e) {
       setState(() {
         _error = 'Failed to load following: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshFollowing() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final userId = _profileController.currentUserProfile.value!.id;
+      final following = await _profileController.getFollowing(userId);
+
+      if (!mounted) return;
+      setState(() {
+        _following = following;
+        _isLoading = false;
+        _showScrollIndicator = following.length > 2;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to refresh following: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -110,7 +137,10 @@ class _FollowingPageState extends State<FollowingPage>
                   colors: [Colors.pink.shade100, const Color(0xFFFFF5F5)],
                 ),
               ),
-              child: _buildBody(),
+              child: RefreshIndicator(
+                onRefresh: _refreshFollowing,
+                child: _buildBody(),
+              ),
             ),
           ),
         ],

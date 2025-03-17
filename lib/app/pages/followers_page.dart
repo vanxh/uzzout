@@ -77,17 +77,44 @@ class _FollowersPageState extends State<FollowersPage>
 
     try {
       final userId = _profileController.currentUserProfile.value!.id;
-      final followers = await _profileController.getFollowers(userId);
+      final cachedFollowers = await _profileController.getFollowers(userId);
 
       setState(() {
-        _followers = followers;
+        _followers = cachedFollowers;
         _isLoading = false;
-        _showScrollIndicator = followers.length > 2;
+        _showScrollIndicator = cachedFollowers.length > 2;
       });
       _animationController.forward();
     } catch (e) {
       setState(() {
         _error = 'Failed to load followers: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refreshFollowers() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final userId = _profileController.currentUserProfile.value!.id;
+      final followers = await _profileController.getFollowers(userId);
+
+      if (!mounted) return;
+      setState(() {
+        _followers = followers;
+        _isLoading = false;
+        _showScrollIndicator = followers.length > 2;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to refresh followers: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -110,7 +137,10 @@ class _FollowersPageState extends State<FollowersPage>
                   colors: [Colors.pink.shade100, const Color(0xFFFFF5F5)],
                 ),
               ),
-              child: _buildBody(),
+              child: RefreshIndicator(
+                onRefresh: _refreshFollowers,
+                child: _buildBody(),
+              ),
             ),
           ),
         ],

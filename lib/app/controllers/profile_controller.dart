@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 import '../models/user_profile.dart';
 import 'auth_controller.dart';
+import 'dart:math' as math;
 
 class ProfileController extends GetxController {
   final _supabase = Supabase.instance.client;
@@ -217,7 +218,15 @@ class ProfileController extends GetxController {
         throw 'Failed to follow user: ${response.data['error'] ?? 'Unknown error'}';
       }
 
+      if (currentUserProfile.value != null) {
+        final updatedProfile = currentUserProfile.value!.copyWith(
+          followingCount: currentUserProfile.value!.followingCount + 1,
+        );
+        currentUserProfile.value = updatedProfile;
+      }
+
       await fetchCurrentUserProfile();
+
       if (viewedProfile.value?.id == userId) {
         await fetchUserProfile(userId);
       }
@@ -244,7 +253,18 @@ class ProfileController extends GetxController {
         throw 'Failed to unfollow user: ${response.data['error'] ?? 'Unknown error'}';
       }
 
+      if (currentUserProfile.value != null) {
+        final updatedProfile = currentUserProfile.value!.copyWith(
+          followingCount: math.max(
+            0,
+            currentUserProfile.value!.followingCount - 1,
+          ),
+        );
+        currentUserProfile.value = updatedProfile;
+      }
+
       await fetchCurrentUserProfile();
+
       if (viewedProfile.value?.id == userId) {
         await fetchUserProfile(userId);
       }
@@ -290,9 +310,20 @@ class ProfileController extends GetxController {
 
       final List<dynamic> followersData = response.data['followers'] ?? [];
 
-      return followersData
-          .map((follower) => UserProfile.fromJson(follower['user']))
-          .toList();
+      final followers =
+          followersData
+              .map((follower) => UserProfile.fromJson(follower['user']))
+              .toList();
+
+      if (currentUserProfile.value != null &&
+          userId == currentUserProfile.value!.id) {
+        final updatedProfile = currentUserProfile.value!.copyWith(
+          followersCount: followers.length,
+        );
+        currentUserProfile.value = updatedProfile;
+      }
+
+      return followers;
     } catch (e) {
       errorMessage.value = 'Failed to fetch followers: ${e.toString()}';
       return [];
@@ -312,9 +343,20 @@ class ProfileController extends GetxController {
 
       final List<dynamic> followingData = response.data['following'] ?? [];
 
-      return followingData
-          .map((following) => UserProfile.fromJson(following['user']))
-          .toList();
+      final following =
+          followingData
+              .map((following) => UserProfile.fromJson(following['user']))
+              .toList();
+
+      if (currentUserProfile.value != null &&
+          userId == currentUserProfile.value!.id) {
+        final updatedProfile = currentUserProfile.value!.copyWith(
+          followingCount: following.length,
+        );
+        currentUserProfile.value = updatedProfile;
+      }
+
+      return following;
     } catch (e) {
       errorMessage.value = 'Failed to fetch following: ${e.toString()}';
       return [];

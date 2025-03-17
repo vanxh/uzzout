@@ -25,6 +25,10 @@ class ProfilePage extends StatelessWidget {
     final LocationController locationController =
         Get.find<LocationController>();
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchSocialData(profileController);
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF5F5),
       extendBodyBehindAppBar: true,
@@ -91,7 +95,11 @@ class ProfilePage extends StatelessWidget {
                           profileController,
                         ),
                         const SizedBox(height: 16),
-                        _buildSocialStats(followersCount, followingCount),
+                        _buildSocialStats(
+                          followersCount,
+                          followingCount,
+                          profileController,
+                        ),
                         const SizedBox(height: 16),
                         _buildProfileInfo(
                           context,
@@ -332,7 +340,11 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSocialStats(int followersCount, int followingCount) {
+  Widget _buildSocialStats(
+    int followersCount,
+    int followingCount,
+    ProfileController profileController,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
@@ -349,11 +361,39 @@ class ProfilePage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildStatColumn(followersCount, 'Followers'),
+          _buildStatColumn(
+            followersCount,
+            'Followers',
+            onTap: () {
+              if (profileController.currentUserProfile.value != null) {
+                profileController.getFollowers(
+                  profileController.currentUserProfile.value!.id,
+                );
+              }
+              Get.toNamed('/followers');
+            },
+          ),
           Container(height: 40, width: 1, color: Colors.grey.withOpacity(0.3)),
-          _buildStatColumn(followingCount, 'Following'),
+          _buildStatColumn(
+            followingCount,
+            'Following',
+            onTap: () {
+              if (profileController.currentUserProfile.value != null) {
+                profileController.getFollowing(
+                  profileController.currentUserProfile.value!.id,
+                );
+              }
+              Get.toNamed('/following');
+            },
+          ),
           Container(height: 40, width: 1, color: Colors.grey.withOpacity(0.3)),
-          _buildStatColumn(0, 'Posts'),
+          _buildStatColumn(
+            0,
+            'Posts',
+            onTap: () {
+              DefaultTabController.of(Get.context!).animateTo(0);
+            },
+          ),
         ],
       ),
     );
@@ -510,18 +550,20 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatColumn(int count, String label) {
+  Widget _buildStatColumn(int count, String label, {VoidCallback? onTap}) {
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          if (label == 'Followers') {
-            Get.toNamed('/followers');
-          } else if (label == 'Following') {
-            Get.toNamed('/following');
-          } else if (label == 'Posts') {
-            DefaultTabController.of(Get.context!).animateTo(0);
-          }
-        },
+        onTap:
+            onTap ??
+            () {
+              if (label == 'Followers') {
+                Get.toNamed('/followers');
+              } else if (label == 'Following') {
+                Get.toNamed('/following');
+              } else if (label == 'Posts') {
+                DefaultTabController.of(Get.context!).animateTo(0);
+              }
+            },
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -861,6 +903,26 @@ class ProfilePage extends StatelessWidget {
           },
         ) ??
         false;
+  }
+
+  Future<void> _fetchSocialData(ProfileController profileController) async {
+    await profileController.fetchCurrentUserProfile();
+
+    if (profileController.currentUserProfile.value != null) {
+      final userId = profileController.currentUserProfile.value!.id;
+
+      final followers = await profileController.getFollowers(userId);
+      final following = await profileController.getFollowing(userId);
+
+      if (profileController.currentUserProfile.value != null) {
+        final updatedProfile = profileController.currentUserProfile.value!
+            .copyWith(
+              followersCount: followers.length,
+              followingCount: following.length,
+            );
+        profileController.currentUserProfile.value = updatedProfile;
+      }
+    }
   }
 }
 
