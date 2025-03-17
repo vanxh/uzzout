@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -28,13 +29,15 @@ class AuthController extends GetxController {
       isLoading.value = true;
       errorMessage.value = null;
 
+      final String androidGoogleClientId =
+          '1005277075218-dpt6cs3ljjpluuv3rbljd653217vdm15.apps.googleusercontent.com';
       final String iosGoogleClientId =
           '1005277075218-gj933ge0r9r1kof3e8qm3neatevrabah.apps.googleusercontent.com';
       final String webGoogleClientId =
           '1005277075218-mv84uljs7b5cqar8f6muqnqcn6hnjfkn.apps.googleusercontent.com';
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
-        clientId: iosGoogleClientId,
+        clientId: Platform.isIOS ? iosGoogleClientId : androidGoogleClientId,
         serverClientId: webGoogleClientId,
         scopes: ['email', 'profile'],
       );

@@ -1,4 +1,4 @@
-package com.example.uzzout
+package com.vanxh.uzzout
 
 import io.flutter.embedding.android.FlutterActivity
 
