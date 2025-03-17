@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
 import '../models/user_profile.dart';
 import 'auth_controller.dart';
 
@@ -15,11 +18,98 @@ class ProfileController extends GetxController {
 
   final RxBool isFollowLoading = false.obs;
   final RxBool isProfileEditing = false.obs;
+  final RxBool isUploadingAvatar = false.obs;
+
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void onInit() {
     super.onInit();
     fetchCurrentUserProfile();
+  }
+
+  Future<File?> pickImage() async {
+    try {
+      final XFile? pickedImage = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 800,
+        maxHeight: 800,
+      );
+
+      if (pickedImage == null) return null;
+      return File(pickedImage.path);
+    } catch (e) {
+      errorMessage.value = 'Error picking image: ${e.toString()}';
+      return null;
+    }
+  }
+
+  Future<bool> uploadAvatar(File imageFile) async {
+    if (_authController.user.value == null) return false;
+
+    try {
+      final fileSize = await imageFile.length();
+      if (fileSize > 2 * 1024 * 1024) {
+        errorMessage.value =
+            'Image size too large. Please select an image under 2MB.';
+        return false;
+      }
+
+      isUploadingAvatar.value = true;
+
+      final userId = _authController.user.value!.id;
+
+      final fileExt = path.extension(imageFile.path);
+
+      final validExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
+      if (!validExtensions.contains(fileExt.toLowerCase())) {
+        errorMessage.value =
+            'Unsupported file format. Please use JPG, PNG or GIF.';
+        return false;
+      }
+
+      final fileName =
+          'avatar_${DateTime.now().millisecondsSinceEpoch}$fileExt';
+
+      final filePath = '$userId/$fileName';
+
+      try {
+        final List<FileObject> oldAvatars = await _supabase.storage
+            .from('avatars')
+            .list(path: userId);
+
+        for (var file in oldAvatars) {
+          await _supabase.storage.from('avatars').remove([
+            '$userId/${file.name}',
+          ]);
+        }
+      } catch (e) {
+        print('Failed to remove old avatars: $e');
+      }
+
+      await _supabase.storage.from('avatars').upload(filePath, imageFile);
+
+      final publicUrl = _supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+      await updateProfile(avatarUrl: publicUrl);
+
+      return true;
+    } catch (e) {
+      errorMessage.value = 'Failed to upload avatar: ${e.toString()}';
+      return false;
+    } finally {
+      isUploadingAvatar.value = false;
+    }
+  }
+
+  Future<bool> pickAndUploadAvatar() async {
+    final imageFile = await pickImage();
+    if (imageFile == null) return false;
+
+    return await uploadAvatar(imageFile);
   }
 
   Future<void> fetchCurrentUserProfile() async {

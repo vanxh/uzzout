@@ -5,6 +5,7 @@ import '../controllers/profile_controller.dart';
 import '../controllers/restaurant_controller.dart';
 import '../controllers/location_controller.dart';
 import 'package:flutter/services.dart';
+import 'dart:io';
 
 class ProfilePage extends StatelessWidget {
   final Function clearAllCaches;
@@ -190,37 +191,95 @@ class ProfilePage extends StatelessWidget {
             Positioned(
               right: 0,
               bottom: 0,
-              child: GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Avatar update coming soon!')),
-                  );
-                },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: const Color(0xFFFFF5F5),
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+              child: Obx(() {
+                final isUploading = profileController.isUploadingAvatar.value;
+
+                return GestureDetector(
+                  onTap:
+                      isUploading
+                          ? null
+                          : () async {
+                            final File? imageFile =
+                                await profileController.pickImage();
+                            if (imageFile != null && context.mounted) {
+                              final bool shouldUpload =
+                                  await _showImageConfirmationDialog(
+                                    context,
+                                    imageFile,
+                                  );
+
+                              if (shouldUpload && context.mounted) {
+                                final success = await profileController
+                                    .uploadAvatar(imageFile);
+
+                                if (context.mounted) {
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Profile picture updated successfully!',
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  } else {
+                                    final errorMsg =
+                                        profileController.errorMessage.value;
+                                    if (errorMsg != null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(errorMsg),
+                                          backgroundColor: Colors.red,
+                                          duration: Duration(seconds: 3),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFFFFF5F5),
+                        width: 2,
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child:
+                        isUploading
+                            ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.pink.shade400,
+                                ),
+                              ),
+                            )
+                            : Icon(
+                              Icons.camera_alt,
+                              size: 18,
+                              color: Colors.pink.shade400,
+                            ),
                   ),
-                  child: Icon(
-                    Icons.camera_alt,
-                    size: 18,
-                    color: Colors.pink.shade400,
-                  ),
-                ),
-              ),
+                );
+              }),
             ),
           ],
         ),
@@ -385,9 +444,7 @@ class ProfilePage extends StatelessWidget {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.only(
-            bottom: 80,
-          ), // Add padding for bottom nav bar
+          padding: const EdgeInsets.only(bottom: 80),
           child: GridView.builder(
             padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
             physics: const ClampingScrollPhysics(),
@@ -415,7 +472,7 @@ class ProfilePage extends StatelessWidget {
         ),
         Positioned(
           right: 16,
-          bottom: 96, // Position above bottom nav bar
+          bottom: 96,
           child: FloatingActionButton(
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -434,9 +491,7 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildSavedGrid(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 80,
-      ), // Add padding for bottom nav bar
+      padding: const EdgeInsets.only(bottom: 80),
       child: GridView.builder(
         padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
         physics: const ClampingScrollPhysics(),
@@ -768,6 +823,54 @@ class ProfilePage extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<bool> _showImageConfirmationDialog(
+    BuildContext context,
+    File imageFile,
+  ) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Update Profile Picture'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Do you want to use this image as your profile picture?',
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      imageFile,
+                      height: 200,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: Text(
+                    'Use Photo',
+                    style: TextStyle(color: Colors.pink.shade400),
+                  ),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
   }
 }
 
