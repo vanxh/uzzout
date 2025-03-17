@@ -207,31 +207,15 @@ class ProfileController extends GetxController {
     try {
       isFollowLoading.value = true;
 
-      final existingFollow = await _supabase
-          .from('followers')
-          .select()
-          .eq('follower_id', currentUserProfile.value!.id)
-          .eq('following_id', userId);
+      final response = await _supabase.functions.invoke(
+        'follow-user',
+        method: HttpMethod.post,
+        body: {'user_id': userId},
+      );
 
-      if (existingFollow.isNotEmpty) {
-        return;
+      if (response.status != 201) {
+        throw 'Failed to follow user: ${response.data['error'] ?? 'Unknown error'}';
       }
-
-      await _supabase.from('followers').insert({
-        'follower_id': currentUserProfile.value!.id,
-        'following_id': userId,
-        'created_at': DateTime.now().toIso8601String(),
-      });
-
-      await _supabase.rpc(
-        'increment_followers_count',
-        params: {'user_id': userId},
-      );
-
-      await _supabase.rpc(
-        'increment_following_count',
-        params: {'user_id': currentUserProfile.value!.id},
-      );
 
       await fetchCurrentUserProfile();
       if (viewedProfile.value?.id == userId) {
@@ -250,21 +234,15 @@ class ProfileController extends GetxController {
     try {
       isFollowLoading.value = true;
 
-      await _supabase
-          .from('followers')
-          .delete()
-          .eq('follower_id', currentUserProfile.value!.id)
-          .eq('following_id', userId);
-
-      await _supabase.rpc(
-        'decrement_followers_count',
-        params: {'user_id': userId},
+      final response = await _supabase.functions.invoke(
+        'unfollow-user',
+        method: HttpMethod.post,
+        body: {'user_id': userId},
       );
 
-      await _supabase.rpc(
-        'decrement_following_count',
-        params: {'user_id': currentUserProfile.value!.id},
-      );
+      if (response.status != 200) {
+        throw 'Failed to unfollow user: ${response.data['error'] ?? 'Unknown error'}';
+      }
 
       await fetchCurrentUserProfile();
       if (viewedProfile.value?.id == userId) {
@@ -281,13 +259,18 @@ class ProfileController extends GetxController {
     if (currentUserProfile.value == null) return false;
 
     try {
-      final result = await _supabase
-          .from('followers')
-          .select()
-          .eq('follower_id', currentUserProfile.value!.id)
-          .eq('following_id', userId);
+      final response = await _supabase.functions.invoke(
+        'get-following',
+        method: HttpMethod.get,
+      );
 
-      return result.isNotEmpty;
+      if (response.status != 200) {
+        throw 'Failed to check follow status: ${response.data['error'] ?? 'Unknown error'}';
+      }
+
+      final List<dynamic> following = response.data['following'] ?? [];
+
+      return following.any((follow) => follow['following_id'] == userId);
     } catch (e) {
       errorMessage.value = 'Failed to check follow status: ${e.toString()}';
       return false;
@@ -296,25 +279,19 @@ class ProfileController extends GetxController {
 
   Future<List<UserProfile>> getFollowers(String userId) async {
     try {
-      final response = await _supabase
-          .from('followers')
-          .select('follower_id')
-          .eq('following_id', userId);
+      final response = await _supabase.functions.invoke(
+        'get-followers/$userId',
+        method: HttpMethod.get,
+      );
 
-      if (response.isEmpty) {
-        return [];
+      if (response.status != 200) {
+        throw 'Failed to fetch followers: ${response.data['error'] ?? 'Unknown error'}';
       }
 
-      final followerIds =
-          response.map((item) => item['follower_id'].toString()).toList();
+      final List<dynamic> followersData = response.data['followers'] ?? [];
 
-      final followerProfiles = await _supabase
-          .from('profiles')
-          .select()
-          .inFilter('id', followerIds);
-
-      return followerProfiles
-          .map((json) => UserProfile.fromJson(json))
+      return followersData
+          .map((follower) => UserProfile.fromJson(follower['user']))
           .toList();
     } catch (e) {
       errorMessage.value = 'Failed to fetch followers: ${e.toString()}';
@@ -324,25 +301,19 @@ class ProfileController extends GetxController {
 
   Future<List<UserProfile>> getFollowing(String userId) async {
     try {
-      final response = await _supabase
-          .from('followers')
-          .select('following_id')
-          .eq('follower_id', userId);
+      final response = await _supabase.functions.invoke(
+        'get-following/$userId',
+        method: HttpMethod.get,
+      );
 
-      if (response.isEmpty) {
-        return [];
+      if (response.status != 200) {
+        throw 'Failed to fetch following: ${response.data['error'] ?? 'Unknown error'}';
       }
 
-      final followingIds =
-          response.map((item) => item['following_id'].toString()).toList();
+      final List<dynamic> followingData = response.data['following'] ?? [];
 
-      final followingProfiles = await _supabase
-          .from('profiles')
-          .select()
-          .inFilter('id', followingIds);
-
-      return followingProfiles
-          .map((json) => UserProfile.fromJson(json))
+      return followingData
+          .map((following) => UserProfile.fromJson(following['user']))
           .toList();
     } catch (e) {
       errorMessage.value = 'Failed to fetch following: ${e.toString()}';
