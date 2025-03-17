@@ -80,160 +80,197 @@ class _OnboardingPageState extends State<OnboardingPage>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
+      backgroundColor: const Color(0xFFFFF5F5),
+      extendBodyBehindAppBar: true,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFFF9BAB), Color(0xFFFF8EA6)],
+            colors: [Colors.pink.shade100, const Color(0xFFFFF5F5)],
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 30.0,
-              vertical: 40.0,
+        child: Stack(
+          children: [
+            Positioned(
+              top: -50,
+              right: -50,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  color: Colors.pink.shade200.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Spacer(),
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
+            Positioned(
+              bottom: screenHeight * 0.1,
+              left: -30,
+              child: Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.pink.shade200.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30.0,
+                  vertical: 40.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Spacer(),
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.restaurant_rounded,
-                              size: 50.0,
-                              color: Color(0xFFFF9BAB),
+                                child: const Icon(
+                                  Icons.restaurant_rounded,
+                                  size: 50.0,
+                                  color: Color(0xFFFF9BAB),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'UzzOut',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Text(
+                          'Join groups to discover and swipe through nearby restaurants together',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Obx(
+                      () =>
+                          _authController.errorMessage.value != null
+                              ? Padding(
+                                padding: const EdgeInsets.only(top: 16.0),
+                                child: Text(
+                                  _authController.errorMessage.value!,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 14,
+                                    color: Colors.red[100],
+                                  ),
+                                ),
+                              )
+                              : const SizedBox.shrink(),
+                    ),
+                    const Spacer(),
+                    AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(
+                            0,
+                            20 * (1 - _animationController.value),
+                          ),
+                          child: Opacity(
+                            opacity: _animationController.value,
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Obx(
+                            () => _buildLoginButton(
+                              context: context,
+                              svgPath: 'assets/icons/google.svg',
+                              text:
+                                  _authController.isLoading.value
+                                      ? 'Signing in...'
+                                      : 'Continue with Google',
+                              onPressed:
+                                  _authController.isLoading.value
+                                      ? null
+                                      : _handleGoogleSignIn,
                             ),
                           ),
-                          const SizedBox(height: 20),
-                          Text(
-                            'UzzOut',
-                            style: GoogleFonts.poppins(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                          const SizedBox(height: 16),
+                          _buildLoginButton(
+                            context: context,
+                            svgPath: 'assets/icons/apple.svg',
+                            text: 'Continue with Apple',
+                            onPressed: null,
+                            backgroundColor: Colors.black,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Text(
-                      'Join groups to discover and swipe through nearby restaurants together',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        color: Colors.white.withValues(alpha: 0.9),
-                      ),
-                    ),
-                  ),
-                ),
-                Obx(
-                  () =>
-                      _authController.errorMessage.value != null
-                          ? Padding(
-                            padding: const EdgeInsets.only(top: 16.0),
-                            child: Text(
-                              _authController.errorMessage.value!,
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14,
-                                color: Colors.red[100],
-                              ),
-                            ),
-                          )
-                          : const SizedBox.shrink(),
-                ),
-                const Spacer(),
-                AnimatedBuilder(
-                  animation: _animationController,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 20 * (1 - _animationController.value)),
-                      child: Opacity(
-                        opacity: _animationController.value,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Obx(
-                        () => _buildLoginButton(
-                          context: context,
-                          svgPath: 'assets/icons/google.svg',
-                          text:
-                              _authController.isLoading.value
-                                  ? 'Signing in...'
-                                  : 'Continue with Google',
-                          onPressed:
-                              _authController.isLoading.value
-                                  ? null
-                                  : _handleGoogleSignIn,
+                    const SizedBox(height: 30),
+                    AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, child) {
+                        return Opacity(
+                          opacity: _animationController.value,
+                          child: child,
+                        );
+                      },
+                      child: Center(
+                        child: Text(
+                          'By continuing, you agree to our Terms & Privacy Policy',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      _buildLoginButton(
-                        context: context,
-                        svgPath: 'assets/icons/apple.svg',
-                        text: 'Continue with Apple',
-                        onPressed: null,
-                        backgroundColor: Colors.black,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-                AnimatedBuilder(
-                  animation: _animationController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _animationController.value,
-                      child: child,
-                    );
-                  },
-                  child: Center(
-                    child: Text(
-                      'By continuing, you agree to our Terms & Privacy Policy',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

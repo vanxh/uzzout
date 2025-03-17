@@ -55,11 +55,41 @@ class _FollowingPageState extends State<FollowingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFFF5F5),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Following'),
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Following',
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Get.back(),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.pink.shade100,
+                Colors.pink.shade100.withOpacity(0.7),
+              ],
+            ),
+          ),
+        ),
       ),
-      body: _buildBody(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.pink.shade100, const Color(0xFFFFF5F5)],
+          ),
+        ),
+        child: _buildBody(),
+      ),
     );
   }
 
@@ -73,15 +103,24 @@ class _FollowingPageState extends State<FollowingPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
             Text(
               _error!,
-              style: const TextStyle(color: Colors.red),
               textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadFollowing,
-              child: const Text('Retry'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.pink.shade400,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Try Again'),
             ),
           ],
         ),
@@ -89,10 +128,26 @@ class _FollowingPageState extends State<FollowingPage> {
     }
 
     if (_following.isEmpty) {
-      return const Center(
-        child: Text(
-          'Not following anyone yet',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              'You\'re not following anyone yet',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Follow users to see them here',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+            ),
+          ],
         ),
       );
     }
