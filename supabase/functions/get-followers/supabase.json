@@ -1,0 +1,18 @@
+{
+	"functions": [
+		{
+			"name": "get-followers",
+			"path": "/get-followers",
+			"schema": {
+				"request": {},
+				"response": {
+					"application/json": {
+						"followers": [],
+						"error": {},
+						"details": {}
+					}
+				}
+			}
+		}
+	]
+}

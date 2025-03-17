@@ -1,0 +1,18 @@
+{
+	"functions": [
+		{
+			"name": "get-following",
+			"path": "/get-following",
+			"schema": {
+				"request": {},
+				"response": {
+					"application/json": {
+						"following": [],
+						"error": {},
+						"details": {}
+					}
+				}
+			}
+		}
+	]
+}

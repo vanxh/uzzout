@@ -1,0 +1,22 @@
+{
+	"functions": [
+		{
+			"name": "unfollow-user",
+			"path": "/unfollow-user",
+			"schema": {
+				"request": {
+					"application/json": {
+						"user_id": "string"
+					}
+				},
+				"response": {
+					"application/json": {
+						"message": "string",
+						"error": {},
+						"details": {}
+					}
+				}
+			}
+		}
+	]
+}

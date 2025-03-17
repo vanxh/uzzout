@@ -1,0 +1,23 @@
+{
+	"functions": [
+		{
+			"name": "follow-user",
+			"path": "/follow-user",
+			"schema": {
+				"request": {
+					"application/json": {
+						"user_id": "string"
+					}
+				},
+				"response": {
+					"application/json": {
+						"message": "string",
+						"followed": {},
+						"error": {},
+						"details": {}
+					}
+				}
+			}
+		}
+	]
+}
