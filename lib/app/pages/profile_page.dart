@@ -49,11 +49,12 @@ class ProfilePage extends StatelessWidget {
             headerSliverBuilder: (context, innerBoxIsScrolled) {
               return [
                 SliverAppBar(
-                  expandedHeight: 200.0,
+                  expandedHeight: 120.0,
                   floating: false,
                   pinned: true,
                   backgroundColor: Colors.pink.shade100,
                   elevation: 0,
+                  toolbarHeight: 40.0,
                   flexibleSpace: FlexibleSpaceBar(
                     background: Container(
                       decoration: BoxDecoration(
@@ -78,7 +79,7 @@ class ProfilePage extends StatelessWidget {
                 ),
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 8.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -89,7 +90,7 @@ class ProfilePage extends StatelessWidget {
                           bio,
                           profileController,
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         _buildSocialStats(followersCount, followingCount),
                         const SizedBox(height: 16),
                         _buildProfileInfo(
@@ -147,9 +148,9 @@ class ProfilePage extends StatelessWidget {
         Stack(
           children: [
             Container(
-              width: 110,
-              height: 110,
-              padding: const EdgeInsets.all(5),
+              width: 100,
+              height: 100,
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -178,7 +179,7 @@ class ProfilePage extends StatelessWidget {
                                     ? fullName[0].toUpperCase()
                                     : 'U',
                                 style: const TextStyle(
-                                  fontSize: 42,
+                                  fontSize: 38,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
@@ -243,8 +244,8 @@ class ProfilePage extends StatelessWidget {
                             }
                           },
                   child: Container(
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -263,8 +264,8 @@ class ProfilePage extends StatelessWidget {
                     child:
                         isUploading
                             ? SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 16,
+                              height: 16,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
@@ -274,7 +275,7 @@ class ProfilePage extends StatelessWidget {
                             )
                             : Icon(
                               Icons.camera_alt,
-                              size: 18,
+                              size: 16,
                               color: Colors.pink.shade400,
                             ),
                   ),
@@ -283,7 +284,7 @@ class ProfilePage extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +296,7 @@ class ProfilePage extends StatelessWidget {
                     child: Text(
                       fullName,
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -305,18 +306,22 @@ class ProfilePage extends StatelessWidget {
                     icon: Icon(
                       Icons.edit_outlined,
                       color: Colors.pink.shade400,
+                      size: 22,
                     ),
                     onPressed:
                         () =>
                             _showEditProfileDialog(context, profileController),
                     tooltip: 'Edit Profile',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ],
               ),
               if (bio.isNotEmpty)
                 Text(
                   bio,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -329,7 +334,7 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildSocialStats(int followersCount, int followingCount) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -379,7 +384,7 @@ class ProfilePage extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         ProfileInfoCard(
           children: [
             Obx(() {
@@ -470,21 +475,6 @@ class ProfilePage extends StatelessWidget {
             },
           ),
         ),
-        Positioned(
-          right: 16,
-          bottom: 96,
-          child: FloatingActionButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Add post functionality coming soon!'),
-                ),
-              );
-            },
-            backgroundColor: Colors.pink.shade400,
-            child: const Icon(Icons.add_photo_alternate_outlined),
-          ),
-        ),
       ],
     );
   }
@@ -538,9 +528,9 @@ class ProfilePage extends StatelessWidget {
           children: [
             Text(
               count.toString(),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
