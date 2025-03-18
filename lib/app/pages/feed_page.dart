@@ -7,7 +7,7 @@ class FeedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final postsController = Get.put(PostsController());
+    final postsController = Get.find<PostsController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF5F5),
