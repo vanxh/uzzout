@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Post {
-  final String id;
+  final int id;
   final DateTime createdAt;
   final List<String> images;
   final String caption;

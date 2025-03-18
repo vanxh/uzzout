@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import '../widgets/fluid_bottom_bar.dart';
 import 'restaurants_page.dart';
-import 'friends_page.dart';
+import 'feed_page.dart';
 import 'profile_page.dart';
 import 'rewards_page.dart';
 import 'swipe_page.dart';
@@ -19,7 +19,7 @@ class MainPage extends StatelessWidget {
 
     final pages = [
       const RestaurantsPage(),
-      const FriendsPage(),
+      const FeedPage(),
       const SwipePage(),
       const RewardsPage(),
       const ProfilePage(),
@@ -41,7 +41,7 @@ class MainPage extends StatelessWidget {
         selectedBackgroundColor: themeColor,
         items: const [
           FluidNavBarItem(icon: Icons.restaurant, label: 'Restaurants'),
-          FluidNavBarItem(icon: Icons.people, label: 'Friends'),
+          FluidNavBarItem(icon: Icons.feed, label: 'Feed'),
           FluidNavBarItem(icon: Icons.favorite, label: 'Discover'),
           FluidNavBarItem(icon: Icons.card_giftcard, label: 'Rewards'),
           FluidNavBarItem(icon: Icons.person, label: 'Profile'),
