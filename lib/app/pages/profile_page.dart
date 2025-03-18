@@ -4,6 +4,7 @@ import '../controllers/auth_controller.dart';
 import '../controllers/profile_controller.dart';
 import '../controllers/restaurant_controller.dart';
 import '../controllers/location_controller.dart';
+import '../controllers/posts_controller.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
 
@@ -24,9 +25,10 @@ class ProfilePage extends StatelessWidget {
     final ProfileController profileController = Get.find<ProfileController>();
     final LocationController locationController =
         Get.find<LocationController>();
+    final PostsController postsController = Get.find<PostsController>();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchSocialData(profileController);
+      _fetchSocialData(profileController, postsController);
     });
 
     return Scaffold(
@@ -345,6 +347,8 @@ class ProfilePage extends StatelessWidget {
     int followingCount,
     ProfileController profileController,
   ) {
+    final PostsController postsController = Get.find<PostsController>();
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
@@ -387,12 +391,14 @@ class ProfilePage extends StatelessWidget {
             },
           ),
           Container(height: 40, width: 1, color: Colors.grey.withOpacity(0.3)),
-          _buildStatColumn(
-            0,
-            'Posts',
-            onTap: () {
-              DefaultTabController.of(Get.context!).animateTo(0);
-            },
+          Obx(
+            () => _buildStatColumn(
+              postsController.totalUserPosts.value,
+              'Posts',
+              onTap: () {
+                DefaultTabController.of(Get.context!).animateTo(0);
+              },
+            ),
           ),
         ],
       ),
@@ -486,35 +492,102 @@ class ProfilePage extends StatelessWidget {
   }
 
   Widget _buildPostsGrid(BuildContext context) {
+    final PostsController postsController = Get.find<PostsController>();
+
     return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 80),
-          child: GridView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-            physics: const ClampingScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 1.0,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: 9,
-            itemBuilder: (context, index) {
-              return PostGridItem(
-                index: index,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Viewing post $index'),
-                      duration: const Duration(seconds: 1),
+        Obx(() {
+          if (postsController.isLoading.value &&
+              postsController.userPosts.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (postsController.userPosts.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.photo_album_outlined,
+                      size: 80,
+                      color: Colors.grey.shade400,
                     ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No posts yet',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your posts will appear here',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 80),
+            child: RefreshIndicator(
+              onRefresh: () => postsController.fetchUserPosts(reset: true),
+              color: Colors.pink.shade400,
+              child: GridView.builder(
+                padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
+                physics: const AlwaysScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 1.0,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount:
+                    postsController.userPosts.length +
+                    (postsController.hasMoreUserPosts ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index == postsController.userPosts.length) {
+                    // Load more indicator
+                    postsController.fetchUserPosts(loadMore: true);
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.pink.shade300,
+                        ),
+                      ),
+                    );
+                  }
+
+                  final post = postsController.userPosts[index];
+                  return PostGridItem(
+                    onTap: () {
+                      // Navigate to post detail page or show more options
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Viewing post ${post.id}'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    isSaved: false,
+                    post: post,
                   );
                 },
-              );
-            },
-          ),
-        ),
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
@@ -905,7 +978,10 @@ class ProfilePage extends StatelessWidget {
         false;
   }
 
-  Future<void> _fetchSocialData(ProfileController profileController) async {
+  Future<void> _fetchSocialData(
+    ProfileController profileController,
+    PostsController postsController,
+  ) async {
     await profileController.fetchCurrentUserProfile();
 
     if (profileController.currentUserProfile.value != null) {
@@ -913,6 +989,9 @@ class ProfilePage extends StatelessWidget {
 
       final followers = await profileController.getFollowers(userId);
       final following = await profileController.getFollowing(userId);
+
+      // Fetch the user's posts
+      await postsController.fetchUserPosts(userId: userId, reset: true);
 
       if (profileController.currentUserProfile.value != null) {
         final updatedProfile = profileController.currentUserProfile.value!
@@ -1084,16 +1163,21 @@ class ProfileInfoTile extends StatelessWidget {
 }
 
 class PostGridItem extends StatelessWidget {
-  final int index;
   final VoidCallback onTap;
   final bool isSaved;
+  final Post? post;
+  final int? index;
 
   const PostGridItem({
     super.key,
-    required this.index,
+    this.index,
     required this.onTap,
     this.isSaved = false,
-  });
+    this.post,
+  }) : assert(
+         post != null || index != null,
+         'Either post or index must be provided',
+       );
 
   @override
   Widget build(BuildContext context) {
@@ -1105,7 +1189,10 @@ class PostGridItem extends StatelessWidget {
       Colors.orange.shade200,
     ];
 
-    final color = colors[index % colors.length];
+    // Use index from post ID or provided index for fallback color
+    final colorIndex =
+        post != null ? post!.id % colors.length : (index ?? 0) % colors.length;
+    final color = colors[colorIndex];
 
     return Material(
       elevation: 2,
@@ -1117,19 +1204,43 @@ class PostGridItem extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Container(
-              decoration: BoxDecoration(
-                color: color,
+            if (post != null && post!.images.isNotEmpty)
+              ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Icon(
-                  isSaved ? Icons.bookmark : Icons.restaurant,
-                  color: Colors.white,
-                  size: 32,
+                child: Image.network(
+                  post!.images[0],
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.image_not_supported,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              )
+            else
+              Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Icon(
+                    isSaved ? Icons.bookmark : Icons.restaurant,
+                    color: Colors.white,
+                    size: 32,
+                  ),
                 ),
               ),
-            ),
             if (isSaved)
               Positioned(
                 top: 8,
@@ -1151,6 +1262,23 @@ class PostGridItem extends StatelessWidget {
                     Icons.bookmark,
                     size: 12,
                     color: Colors.pink.shade400,
+                  ),
+                ),
+              ),
+            if (post != null && post!.images.length > 1)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Icon(
+                    Icons.collections,
+                    size: 12,
+                    color: Colors.white,
                   ),
                 ),
               ),

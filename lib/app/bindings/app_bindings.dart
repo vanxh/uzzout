@@ -4,6 +4,7 @@ import '../controllers/restaurant_controller.dart';
 import '../controllers/navigation_controller.dart';
 import '../controllers/location_controller.dart';
 import '../controllers/profile_controller.dart';
+import '../controllers/posts_controller.dart';
 
 class AppBindings extends Bindings {
   @override
@@ -13,5 +14,6 @@ class AppBindings extends Bindings {
     Get.put<RestaurantController>(RestaurantController(), permanent: true);
     Get.put<NavigationController>(NavigationController(), permanent: true);
     Get.put<ProfileController>(ProfileController(), permanent: true);
+    Get.put<PostsController>(PostsController(), permanent: true);
   }
 }
